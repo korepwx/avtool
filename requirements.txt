@@ -1,4 +1,6 @@
+bs4
 click >= 6.7
 dataclasses ; python_version < '3.7'
 ffmpeg-python >= 0.2.0
 PyYAML >= 3.13
+requests >= 2.22.0
