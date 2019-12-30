@@ -1,6 +1,10 @@
 bs4
 click >= 6.7
 dataclasses ; python_version < '3.7'
+dataclasses_json
 ffmpeg-python >= 0.2.0
+lxml
+pillow
 PyYAML >= 3.13
 requests >= 2.22.0
+git+https://github.com/haowen-xu/ml-essentials.git

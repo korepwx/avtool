@@ -21,9 +21,6 @@ class MovieCodec(object):
     def is_desired_video_codec(self) -> bool:
         return self.video.get('codec_name') in ('h264', 'hevc')
 
-    def is_desired_audio_codec(self) -> bool:
-        return self.audio.get('codec_name') in ('aac',)
-
 
 def get_movie_codec(file_path: str) -> MovieCodec:
     def extract_keys(d: Mapping[str, Any],
@@ -67,8 +64,7 @@ def transcode_movies(input_files: Sequence[str],
         if (len(input_codecs) == 1 or
                 all(a.audio == b.audio
                     for a, b in zip(input_codecs[:-1], input_codecs[1:]))):
-            if input_codecs[0].is_desired_audio_codec():
-                audio_need_transcode = False
+            audio_need_transcode = False
 
         if (len(input_codecs) == 1 or
                 all(a.video == b.video
