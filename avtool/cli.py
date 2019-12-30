@@ -122,7 +122,7 @@ def collect(input_dir, output_dir, simulate, cleanup):
 
 
 @entry.command('assets')
-@click.option('-t', '--thread-num', default=20, required=True, type=click.INT,
+@click.option('-t', '--thread-num', default=10, required=True, type=click.INT,
               help='The number of fetcher threads.')
 @click.option('-F', '--force', default=False, required=True, is_flag=True,
               help='Force fetching the assets even if present.')
