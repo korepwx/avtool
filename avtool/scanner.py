@@ -48,7 +48,7 @@ class AVFilesMatcher(object):
     FILE_PATTERNS = [
         (3, re.compile(
             r'^(?:HD-|\[[a-z0-9]+\.[a-z]+\])?'
-            r'(?P<id>(?:[A-Z]+)-(?:[0-9]+))'
+            r'(?P<id>(?:[A-Z0-9]+)-(?:[0-9]+))'
             r'(?:\s*\((?P<order1>\d+)\)|-(?P<order2>\d+)|\((?P<order3>[a-z])\))?'
             r'(?:\s+.*)?'
             r'\.(?P<ext>' + '|'.join(MOVIE_EXTENSIONS) + r'?)'
@@ -148,7 +148,7 @@ class AVDirectoryMatcher(object):
 class DefaultAVDirectoryMatcher(AVDirectoryMatcher):
     """The default AV directory matcher."""
 
-    DIR_PATTERN = re.compile(r'^(?:HD-)?(?P<id>(?:[A-Z]+)-(?:[0-9]+))(?:\s+.*)?$', re.I)
+    DIR_PATTERN = re.compile(r'^(?:HD-)?(?P<id>(?:[A-Z0-9]+)-(?:[0-9]+))(?:\s+.*)?$', re.I)
 
     def match(self, path: str) -> Optional[AVEntry]:
         base_name = os.path.split(path)[-1]
@@ -171,7 +171,7 @@ class DefaultAVDirectoryMatcher(AVDirectoryMatcher):
 class EverAverDirectoryMatcher(AVDirectoryMatcher):
     """The directory matcher for EverAver organized directories."""
 
-    DIR_PATTERN = re.compile(r'^.*\[(?P<id>(?:[A-Z]+)-(?:[0-9]+))\]$', re.I)
+    DIR_PATTERN = re.compile(r'^.*\[(?P<id>(?:[A-Z0-9]+)-(?:[0-9]+))\]$', re.I)
 
     def match(self, path: str) -> Optional[AVEntry]:
         base_name = os.path.split(path)[-1]
@@ -180,7 +180,7 @@ class EverAverDirectoryMatcher(AVDirectoryMatcher):
         if m:
             for name in os.listdir(path):
                 left, right = os.path.splitext(name)
-                if left.upper() == base_name_upper and \
+                if left.upper().endswith(base_name_upper) and \
                         right.lower()[1:] in MOVIE_EXTENSIONS:
                     return AVEntry(
                         movie_id=m.groupdict()['id'],
