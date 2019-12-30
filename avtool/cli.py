@@ -55,7 +55,7 @@ def entry():
     """AV movies command line tool."""
 
 
-@entry.command('make-workspace')
+@entry.command('collect')
 @click.option('-i', '--input-dir', required=True, default='.',
               help='Specify the input files directory.')
 @click.option('-S', '--simulate', required=False, default=False, is_flag=True,
@@ -63,7 +63,7 @@ def entry():
 @click.option('-C', '--cleanup', required=False, default=True, is_flag=True,
               help='Cleanup empty directories.')
 @click.argument('output-dir', required=True)
-def make_workspace(input_dir, output_dir, simulate, cleanup):
+def collect(input_dir, output_dir, simulate, cleanup):
     # gather the entries
     entries: List[AVEntry] = []
     scanner = AVScanner()
@@ -120,7 +120,7 @@ def make_workspace(input_dir, output_dir, simulate, cleanup):
             try_execute(lambda: move_entry(e, target_dir))
 
 
-@entry.command('fetch-assets')
+@entry.command('assets')
 @click.option('-t', '--thread-num', default=20, required=True, type=click.INT,
               help='The number of fetcher threads.')
 @click.option('-F', '--force', default=False, required=True, is_flag=True,
@@ -161,7 +161,7 @@ def fetch_assets(work_dir, thread_num, force):
     thread_pool.close()
 
 
-@entry.command('make-nfo')
+@entry.command('nfo')
 @click.option('-F', '--force', default=False, required=True, is_flag=True,
               help='Force fetching the assets even if present.')
 @click.argument('work-dir', default='.', required=False)
