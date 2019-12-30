@@ -78,11 +78,11 @@ def collect(input_dir, output_dir, simulate, cleanup):
         actions = {}
 
         for i, movie_file in enumerate(e.movie_files):
+            base_name, ext = os.path.splitext(movie_file)
             if i >= 1:
-                base_name, ext = os.path.splitext(movie_file)
-                target_file = f'{base_name}-{i}{ext}'
+                target_file = f'{e.movie_id}-{i}{ext}'
             else:
-                target_file = movie_file
+                target_file = f'{e.movie_id}{ext}'
             target_path = os.path.join(target_dir, target_file)
             if os.path.exists(target_path):
                 raise IOError(f'Target file already exists: {target_path}')
@@ -90,7 +90,8 @@ def collect(input_dir, output_dir, simulate, cleanup):
 
         if e.asset_files:
             for asset_file in e.asset_files:
-                target_path = os.path.join(target_dir, asset_file)
+                base_name, ext = os.path.splitext(asset_file)
+                target_path = os.path.join(target_dir, f'{base_name}{ext}')
                 if os.path.exists(target_path):
                     raise IOError(f'Target file already exists: {target_path}')
                 actions[asset_file] = target_path

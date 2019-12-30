@@ -55,7 +55,15 @@ class AVFilesMatcher(object):
             r'(?:\.(?P<download_ext>' + '|'.join(DOWNLOADING_EXTENSIONS) + r'))?'
             r'$',
             re.I
-        ))
+        )),
+        # (0, re.compile(
+        #     r'^.*(?:HD-|\[[a-z0-9]+\.[a-z]+\])?'
+        #     r'\[(?P<id>(?:[A-Z0-9]+)-(?:[0-9]+))\]'
+        #     r'\.(?P<ext>' + '|'.join(MOVIE_EXTENSIONS) + r'?)'
+        #     r'(?:\.(?P<download_ext>' + '|'.join(DOWNLOADING_EXTENSIONS) + r'))?'
+        #     r'$',
+        #     re.I
+        # ))
     ]
 
     def __init__(self, parent_dir: str, movie_id: Optional[str] = None):
