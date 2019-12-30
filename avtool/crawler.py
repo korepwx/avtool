@@ -75,7 +75,7 @@ class AVInfo(mltk.Config):
 class AVInfoCrawler(object):
     """Base class for all AVInfo crawlers."""
 
-    def fetch(self, movie_id: str) -> Optional[AVInfo]:
+    def fetch(self, movie_id: str) -> AVInfo:
         """Fetch the information of a specified movie."""
         raise NotImplementedError()
 
@@ -83,7 +83,7 @@ class AVInfoCrawler(object):
 class JavBusCrawler(AVInfoCrawler):
     """AVInfo crawler that fetches AV information from javbus.com."""
 
-    def fetch(self, movie_id: str) -> Optional[AVInfo]:
+    def fetch(self, movie_id: str) -> AVInfo:
         """
         Fetch AV info from various online sources.
 
@@ -92,8 +92,6 @@ class JavBusCrawler(AVInfoCrawler):
         """
         movie_id = movie_id.upper()
         content = requests.get(f'https://javbus.com/{movie_id}')
-        if content.status_code == 404:
-            return None
         content.raise_for_status()
         tree = BeautifulSoup(content.content, features='html.parser')
         info = AVInfo(movie_id=movie_id)
