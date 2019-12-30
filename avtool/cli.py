@@ -183,20 +183,30 @@ def make_nfo(work_dir, force):
 
 
 @entry.command('transcode')
+@click.option('--no-delete-input', default=False, required=False, is_flag=True,
+              help='Do not delete input files.')
 @click.argument('work-dir', default='.', required=False)
-def transcode(work_dir):
+def transcode(work_dir, no_delete_input):
     # gather movie files
     scanner = AVScanner()
     entries = list(scanner.find_iter(work_dir))
     index_fmt = IndexFormatter(len(entries))
 
     # do transcode
+    def do_transcode(input_files: Sequence[str], output_file: str):
+        transcode_movies(input_files, output_file)
+        if not no_delete_input:
+            for input_file in input_files:
+                if not os.path.samefile(input_file, output_file):
+                    print(index_fmt.left_padding() + f'  Remove: {input_file}')
+                    os.remove(input_file)
+
     for i, e in enumerate(entries, 1):
         base_name = os.path.splitext(e.movie_files[0])[0]
         print(f'{index_fmt(i)}: {e}')
         input_files = [os.path.join(e.parent_dir, n) for n in e.movie_files]
         output_file = os.path.join(e.parent_dir, f'{base_name}.mp4')
-        try_execute(lambda: transcode_movies(input_files, output_file))
+        try_execute(lambda: do_transcode(input_files, output_file))
 
 
 @entry.command('rename')
