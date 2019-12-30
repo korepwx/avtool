@@ -61,3 +61,4 @@ def write_av_info(info: AVInfo, root_dir: str, base_name: str):
                     base_name, uri=info.cover.thumbnail_uri),
                 content=info.cover.thumbnail_content,
             )
+
