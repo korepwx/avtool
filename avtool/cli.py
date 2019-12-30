@@ -136,20 +136,27 @@ def fetch_assets(work_dir, thread_num, force):
     print(f'Submitted {len(entries)} jobs to queue.')
 
     # fetch the assets
-    def fetch_asset_for(e: AVEntry):
+    def fetch_asset_for(e: AVEntry, retry: int = 3):
         try:
-            base_name = os.path.splitext(e.movie_files[0])[0]
-            asset_files = [os.path.join(e.parent_dir, f'{base_name}.{ext}')
-                           for ext in ('zip', 'json')]
-            if force or not all(os.path.isfile(asset_file) for asset_file in asset_files):
-                make_av_assets(
-                    JavBusCrawler().fetch(e.movie_id),
-                    e.parent_dir,
-                    base_name,
-                )
-                msg = f'finished: {e}'
-            else:
-                msg = f'skipped: {e}'
+            while True:
+                try:
+                    base_name = os.path.splitext(e.movie_files[0])[0]
+                    asset_files = [os.path.join(e.parent_dir, f'{base_name}.{ext}')
+                                   for ext in ('zip', 'json')]
+                    if force or not all(os.path.isfile(asset_file) for asset_file in asset_files):
+                        make_av_assets(
+                            JavBusCrawler().fetch(e.movie_id),
+                            e.parent_dir,
+                            base_name,
+                        )
+                        msg = f'finished: {e}'
+                    else:
+                        msg = f'skipped: {e}'
+                    break
+                except Exception:
+                    retry -= 1
+                    if retry < 0:
+                        raise
         except Exception:
             msg = (
                 f'failed: {e}\n' +
