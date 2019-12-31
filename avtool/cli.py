@@ -302,7 +302,7 @@ def auto_jobs(input_dir, output_dir):
     # fetch-assets
     check_call(['avtool', 'assets'], cwd=output_dir)
     # make-nfo
-    check_call(['avtool', 'assets'], cwd=output_dir)
+    check_call(['avtool', 'nfo'], cwd=output_dir)
     # transcode
     check_call(['avtool', 'transcode'], cwd=output_dir)
 
