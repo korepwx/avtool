@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 import sys
 import traceback
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from typing import *
 import click
 import mltk
 
+from avtool.indexing import JSONIndexer
 from .assets import *
 from .crawler import *
 from .renamer import *
@@ -40,6 +42,13 @@ class AtomicCounter(object):
         with self.lock:
             self.value += n
             return self.value
+
+
+def load_info_by_entry(e: AVEntry) -> AVInfo:
+    base_name = os.path.splitext(e.movie_files[0])[0]
+    loader = mltk.ConfigLoader(AVInfo)
+    loader.load_file(os.path.join(e.parent_dir, f'{base_name}.json'))
+    return loader.get()
 
 
 @contextmanager
@@ -126,8 +135,10 @@ def collect(input_dir, output_dir, simulate, cleanup):
               help='The number of fetcher threads.')
 @click.option('-F', '--force', default=False, required=True, is_flag=True,
               help='Force fetching the assets even if present.')
+@click.option('-S', '--simulate', required=False, default=False, is_flag=True,
+              help='Simulate, do not execute.')
 @click.argument('work-dir', default='.', required=False)
-def fetch_assets(work_dir, thread_num, force):
+def fetch_assets(work_dir, thread_num, force, simulate):
     # gather movie files
     scanner = AVScanner()
     entries = list(scanner.find_iter(work_dir))
@@ -143,12 +154,14 @@ def fetch_assets(work_dir, thread_num, force):
                     base_name = os.path.splitext(e.movie_files[0])[0]
                     asset_files = [os.path.join(e.parent_dir, f'{base_name}.{ext}')
                                    for ext in ('zip', 'json')]
-                    if force or not all(os.path.isfile(asset_file) for asset_file in asset_files):
-                        make_av_assets(
-                            JavBusCrawler().fetch(e.movie_id),
-                            e.parent_dir,
-                            base_name,
-                        )
+                    if force or not all(os.path.isfile(asset_file)
+                                        for asset_file in asset_files):
+                        if not simulate:
+                            make_av_assets(
+                                JavBusCrawler().fetch(e.movie_id),
+                                e.parent_dir,
+                                base_name,
+                            )
                         msg = f'finished: {e}'
                     else:
                         msg = f'skipped: {e}'
@@ -172,8 +185,10 @@ def fetch_assets(work_dir, thread_num, force):
 @entry.command('nfo')
 @click.option('-F', '--force', default=False, required=True, is_flag=True,
               help='Force fetching the assets even if present.')
+@click.option('-S', '--simulate', required=False, default=False, is_flag=True,
+              help='Simulate, do not execute.')
 @click.argument('work-dir', default='.', required=False)
-def make_nfo(work_dir, force):
+def make_nfo(work_dir, force, simulate):
     # gather movie files
     scanner = AVScanner()
     entries = list(scanner.find_iter(work_dir))
@@ -183,8 +198,9 @@ def make_nfo(work_dir, force):
     for i, e in enumerate(entries, 1):
         base_name = os.path.splitext(e.movie_files[0])[0]
         if force or not os.path.exists(os.path.join(e.parent_dir, f'{base_name}.nfo')):
-            print(f'{index_fmt(i)}: generated: {e}')
-            try_execute(lambda: make_nfo_file(e.parent_dir, base_name))
+            print(f'{index_fmt(i)}: generate: {e}')
+            if not simulate:
+                try_execute(lambda: make_nfo_file(e.parent_dir, base_name))
         else:
             print(f'{index_fmt(i)}: skipped: {e}')
 
@@ -192,8 +208,10 @@ def make_nfo(work_dir, force):
 @entry.command('transcode')
 @click.option('--no-delete-input', default=False, required=False, is_flag=True,
               help='Do not delete input files.')
+@click.option('-S', '--simulate', required=False, default=False, is_flag=True,
+              help='Simulate, do not execute.')
 @click.argument('work-dir', default='.', required=False)
-def transcode(work_dir, no_delete_input):
+def transcode(work_dir, no_delete_input, simulate):
     # gather movie files
     scanner = AVScanner()
     entries = list(scanner.find_iter(work_dir))
@@ -201,12 +219,13 @@ def transcode(work_dir, no_delete_input):
 
     # do transcode
     def do_transcode(input_files: Sequence[str], output_file: str):
-        transcode_movies(input_files, output_file)
-        if not no_delete_input:
-            for input_file in input_files:
-                if not os.path.samefile(input_file, output_file):
-                    print(index_fmt.left_padding() + f'  Remove: {input_file}')
-                    os.remove(input_file)
+        if not simulate:
+            transcode_movies(input_files, output_file)
+            if not no_delete_input:
+                for input_file in input_files:
+                    if not os.path.samefile(input_file, output_file):
+                        print(index_fmt.left_padding() + f'  Remove: {input_file}')
+                        os.remove(input_file)
 
     for i, e in enumerate(entries, 1):
         base_name = os.path.splitext(e.movie_files[0])[0]
@@ -231,10 +250,7 @@ def rename(source_dir, output_dir, overwrite, simulate):
 
     # do rename
     def do_rename(e: AVEntry):
-        base_name = os.path.splitext(e.movie_files[0])[0]
-        loader = mltk.ConfigLoader(AVInfo)
-        loader.load_file(os.path.join(e.parent_dir, f'{base_name}.json'))
-        info = loader.get()
+        info = load_info_by_entry(e)
         renamer.rename(e, info, overwrite=overwrite)
 
     renamer = AVRenamer(output_dir)
@@ -242,6 +258,53 @@ def rename(source_dir, output_dir, overwrite, simulate):
         print(f'{index_fmt(i)}: {e}')
         if not simulate:
             try_execute(lambda: do_rename(e))
+
+
+@entry.command('index')
+@click.option('-i', '--input-dir', required=True, default='.',
+              help='Specify the input files directory.')
+@click.argument('output-file', required=True, default='index.json')
+def index(input_dir, output_file):
+    # gather movie files
+    scanner = AVScanner()
+    entries = list(scanner.find_iter(input_dir))
+    index_fmt = IndexFormatter(len(entries))
+
+    # do index
+    def index_entry(e: AVEntry):
+        info = load_info_by_entry(e)
+        json_indexer.add(e, info)
+
+    with JSONIndexer(output_file) as json_indexer:
+        for i, e in enumerate(entries):
+            print(f'{index_fmt(i)}: {e}')
+            try_execute(lambda: index_entry(e))
+
+
+@entry.command('auto')
+@click.option('-i', '--input-dir', required=True, default='.',
+              help='Specify the input files directory.')
+@click.argument('output-dir', required=True)
+def auto_jobs(input_dir, output_dir):
+    input_dir = os.path.abspath(input_dir)
+    output_dir = os.path.abspath(output_dir)
+
+    def check_call(args, cwd=None):
+        print(f'> {args}')
+        print('')
+        kwargs = {'cwd': cwd} if cwd is not None else {}
+        exit_code = subprocess.check_call(args, **kwargs)
+        print('')
+        print(f'Exit code: {exit_code}')
+
+    # collect
+    check_call(['avtool', 'collect', '-i', input_dir, output_dir])
+    # fetch-assets
+    check_call(['avtool', 'assets'], cwd=output_dir)
+    # make-nfo
+    check_call(['avtool', 'assets'], cwd=output_dir)
+    # transcode
+    check_call(['avtool', 'transcode'], cwd=output_dir)
 
 
 if __name__ == '__main__':
