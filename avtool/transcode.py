@@ -1,8 +1,8 @@
 import codecs
 import os
 import uuid
-
 from dataclasses import dataclass
+from itertools import chain
 from tempfile import TemporaryDirectory
 from typing import *
 
@@ -102,10 +102,14 @@ def transcode_movies(input_files: Sequence[str],
             else:
                 # otherwise do transcoding
                 if len(input_files) > 1:
-                    input_stream = ffmpeg.concat(*(
-                        ffmpeg.input(input_file)
-                        for input_file in input_files
-                    ))
+                    input_stream = ffmpeg.concat(
+                        *chain(*[
+                            (ffmpeg.input(input_file), ffmpeg.input(input_file))
+                            for input_file in input_files
+                        ]),
+                        a=1,
+                        v=1,
+                    )
                 else:
                     input_stream = ffmpeg.input(input_files[0])
                 input_stream.output(temp_output_file).run()
